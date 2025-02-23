@@ -32,3 +32,42 @@ deployment or live hosting, with all resource paths starting there.
 Arrow does exactly what I need. It is not a general-purpose static site
 generator, nor does it aim to be. If your needs align with mine, it might be
 useful; otherwise, there are plenty of other tools out there.
+
+## Building
+
+Windows:
+
+```bat
+@echo off
+
+set GOOS=linux
+set GOARCH=amd64
+set CGO_ENABLED=0
+
+set GOFILE=.\main.go
+
+set OUTPUT_BINARY=arrow
+
+go build -o %OUTPUT_BINARY% %GOFILE%
+
+set GOOS=
+set GOARCH=
+set CGO_ENABLED=
+
+echo Build complete!
+pause
+```
+
+```sh
+#!/bin/sh
+
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o arrow ./main.go
+
+if [ $? -eq 0 ]; then
+    echo "Build complete!"
+else
+    echo "Build failed!"
+    exit 1
+fi
+```
+
