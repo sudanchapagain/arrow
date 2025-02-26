@@ -11,14 +11,23 @@ import (
 )
 
 func Build(entry string) {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Error loading config: %v", err)
-	}
+	var buildPath string
+	if entry == "." {
+		var err error
+		buildPath, err = filepath.Abs(entry)
+		if err != nil {
+			log.Fatalf("Error getting absolute path for current directory: %v", err)
+		}
+	} else {
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			log.Fatalf("Error loading config: %v", err)
+		}
 
-	buildPath, err := cfg.GetPath(entry)
-	if err != nil {
-		log.Fatalf("Error getting path for entry '%s': %v", entry, err)
+		buildPath, err = cfg.GetPath(entry)
+		if err != nil {
+			log.Fatalf("Error getting path for entry '%s': %v", entry, err)
+		}
 	}
 
 	srcDir := filepath.Join(buildPath, "src")

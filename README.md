@@ -58,6 +58,10 @@ echo Build complete!
 pause
 ```
 
+Linux:
+
+sh
+
 ```sh
 #!/bin/sh
 
@@ -69,4 +73,16 @@ else
     echo "Build failed!"
     exit 1
 fi
+```
+
+fish
+
+```fish
+#!/bin/fish
+
+set CGO_ENABLED 0
+set GOOS linux
+set GOARCH amd64
+
+go build -o arrow ./main.go
 ```
