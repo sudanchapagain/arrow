@@ -14,9 +14,13 @@ type Workspace struct {
 	Path string `yaml:"path"`
 }
 
+type ServerConfig struct {
+	Port int `yaml:"port"`
+}
+
 type Config struct {
 	Workspaces map[string]Workspace `yaml:"workspaces"`
-	Port       int                  `yaml:"port"`
+	Server     ServerConfig         `yaml:"server"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -24,7 +28,7 @@ func LoadConfig() (*Config, error) {
 
 	cfg := &Config{
 		Workspaces: make(map[string]Workspace),
-		Port:       8000,
+		Server:     ServerConfig{Port: 8000},
 	}
 
 	if _, err := os.Stat(configPath); err != nil {
@@ -43,8 +47,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	if cfg.Port == 0 {
-		cfg.Port = 8000
+	if cfg.Server.Port == 0 {
+		cfg.Server.Port = 8000
 	}
 
 	return cfg, nil

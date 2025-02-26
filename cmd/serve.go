@@ -53,7 +53,7 @@ func Serve(port int, entry string) {
 	}
 
 	if port == 0 {
-		port = cfg.Port
+		port = cfg.Server.Port
 	}
 
 	go func() {
