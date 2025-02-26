@@ -27,8 +27,8 @@ func main() {
 					and style sheet.
 
 					usage:
-						arrow serve -- serves default site
-						arrow serve note -- serves notes folder.
+						arrow serve # serves default site (first in config)
+						arrow serve --entry note # serve notes workspace
 
 					the entries are fetched from `.config/arrow/arrow.conf` in linux
 					& macos but `AppData/roaming/arrow/arrow.conf` in windows.
@@ -68,8 +68,8 @@ func main() {
 					through config)
 
 					usage:
-						arrow new -- default site
-						arrow new note -- a entry in declared notes
+						arrow new # default site (first entry in config)
+						arrow new --entry note # a new entry in notes workspace
 				**/
 				Name:    "new",
 				Aliases: []string{"n"},
@@ -92,8 +92,8 @@ func main() {
 					outputs status of each source file
 
 					usage:
-						arrow status -- default site
-						arrow status note -- a entry in declared notes
+						arrow status # default site (first entry in config)
+						arrow status --entry note # a entry in declared notes
 				**/
 				Name:    "status",
 				Aliases: []string{"st"},
@@ -116,8 +116,8 @@ func main() {
 					Just builds the site.
 
 					usage:
-						arrow build -- default site build
-						arrow build note -- build notes
+						arrow build # default site build (first entry in config)
+						arrow build --entry note # build notes
 				**/
 				Name:    "build",
 				Aliases: []string{"b"},
