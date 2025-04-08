@@ -208,4 +208,3 @@ files at `/home/me/notes` & serve it on `localhost:4321`.
 
 - better table printing for status command.
 - new command improvements.
-- rebuild actually doesnt seem to work.

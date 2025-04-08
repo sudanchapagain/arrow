@@ -41,7 +41,7 @@ var markdownParser = goldmark.New(
 	goldmark.WithExtensions(
 		extension.GFM,
 		highlighting.NewHighlighting(
-			highlighting.WithStyle("monokailight"),
+			highlighting.WithStyle("colorful"),
 			highlighting.WithFormatOptions(html.WithLineNumbers(false)),
 		),
 	),

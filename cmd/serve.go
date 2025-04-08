@@ -8,32 +8,15 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
-	"time"
 
 	"arrow/config"
-
-	"github.com/fsnotify/fsnotify"
-)
-
-const debounceDelay = 500 * time.Millisecond
-
-var (
-	serveMutex sync.Mutex
-	quitChan   = make(chan os.Signal, 1)
-	stopChan   = make(chan struct{})
 )
 
 func Serve(port int, entry string) {
-	signal.Notify(quitChan, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-quitChan
-		fmt.Println("Received shutdown signal, shutting down...")
-
-		shutdown()
-	}()
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	Build(entry)
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -47,124 +30,60 @@ func Serve(port int, entry string) {
 
 	distPath := filepath.Join(buildPath, "dist")
 
-	if _, err := os.Stat(distPath); os.IsNotExist(err) {
-		fmt.Println("dist directory not found. Running Build...")
-		Build(entry)
-	}
-
 	if port == 0 {
 		port = cfg.Server.Port
 	}
 
-	go func() {
-		serveMutex.Lock()
-		defer serveMutex.Unlock()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("Request: %s %s\n", r.Method, r.URL.Path)
 
-		fmt.Printf("Serving at http://localhost:%d/\n", port)
+		requestedPath := r.URL.Path
+		if requestedPath == "/" {
+			requestedPath = "/index.html"
+		}
 
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Printf("Request: %s %s\n", r.Method, r.URL.Path)
+		filePath := filepath.Join(distPath, requestedPath)
 
-			requestedPath := r.URL.Path
+		info, err := os.Stat(filePath)
+		if err == nil && !info.IsDir() {
+			http.ServeFile(w, r, filePath)
+			return
+		}
 
-			if requestedPath == "/" {
-				requestedPath = "/index.html"
-			}
-
-			filePath := distPath + requestedPath
-
-			if info, err := os.Stat(filePath); err == nil {
-				if info.IsDir() {
-					if !strings.HasSuffix(filePath, "/") {
-						filePath += "/"
-					}
-					indexPath := filePath + "index.html"
-					if _, err := os.Stat(indexPath); err == nil {
-						filePath = indexPath
-					} else {
-						http.NotFound(w, r)
-						return
-					}
-				}
-				http.ServeFile(w, r, filePath)
+		if err == nil && info.IsDir() {
+			indexPath := filepath.Join(filePath, "index.html")
+			if _, err := os.Stat(indexPath); err == nil {
+				http.ServeFile(w, r, indexPath)
 				return
 			}
+		}
 
-			if !hasExtension(requestedPath) {
-				altPath := distPath + requestedPath + ".html"
-				if _, err := os.Stat(altPath); err == nil {
-					http.ServeFile(w, r, altPath)
-					return
-				}
+		if !hasExtension(requestedPath) {
+			altPath := filepath.Join(distPath, requestedPath+".html")
+			if _, err := os.Stat(altPath); err == nil {
+				http.ServeFile(w, r, altPath)
+				return
 			}
+		}
 
-			http.NotFound(w, r)
-		})
+		http.NotFound(w, r)
+	})
 
-		err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-		if err != nil {
+	server := &http.Server{Addr: fmt.Sprintf(":%d", port)}
+	fmt.Printf("Serving at http://localhost:%d/\n", port)
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalf("Failed to create file watcher: %v", err)
-	}
-	defer watcher.Close()
-
-	err = watchDirectories(watcher, buildPath)
-	if err != nil {
-		log.Fatalf("Failed to watch source directories: %v", err)
-	}
-
-	var timer *time.Timer
-
-	for {
-		select {
-		case event, ok := <-watcher.Events:
-			if !ok {
-				return
-			}
-
-			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove) != 0 {
-				if timer != nil {
-					timer.Stop()
-				}
-
-				timer = time.AfterFunc(debounceDelay, func() {
-					fmt.Println("Change detected, rebuilding...")
-					Build(entry)
-				})
-			}
-
-		case err, ok := <-watcher.Errors:
-			if ok {
-				log.Printf("Watcher error: %v", err)
-			}
-
-		case <-stopChan:
-			return
-		}
-	}
+	<-signalChan
+	fmt.Println("\nReceived shutdown signal, exiting.")
 }
 
 func hasExtension(path string) bool {
 	lastSlash := strings.LastIndex(path, "/")
 	lastDot := strings.LastIndex(path, ".")
 	return lastDot > lastSlash
-}
-
-func watchDirectories(watcher *fsnotify.Watcher, basePath string) error {
-	return filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
-		if err == nil && info.IsDir() {
-			return watcher.Add(path)
-		}
-		return err
-	})
-}
-
-func shutdown() {
-	close(stopChan)
-	serveMutex.Unlock()
 }
