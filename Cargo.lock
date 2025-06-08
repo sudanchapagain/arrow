@@ -57,7 +57,7 @@ name = "arrow"
 version = "0.1.0"
 dependencies = [
  "clap",
- "markdown",
+ "jotdown",
 ]
 
 [[package]]
@@ -100,13 +100,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
-name = "markdown"
-version = "1.0.0"
+name = "jotdown"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5cab8f2cadc416a82d2e783a1946388b31654d391d1c7d92cc1f03e295b1deb"
-dependencies = [
- "unicode-id",
-]
+checksum = "c519aad5c5d1057c0c5e71370c6c61ec997af47597d66c4bd7c3dbd5543aef65"
 
 [[package]]
 name = "once_cell_polyfill"
@@ -119,12 +116,6 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
-
-[[package]]
-name = "unicode-id"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10103c57044730945224467c09f71a4db0071c123a0648cc3e818913bde6b561"
 
 [[package]]
 name = "utf8parse"

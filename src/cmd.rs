@@ -1,4 +1,4 @@
-pub fn serve(port: i32, entry: &str) {
+pub fn serve(port: u16, entry: &str) {
     println!("{}, {}", port, entry);
 }
 

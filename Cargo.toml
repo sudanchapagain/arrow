@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 clap = "4.5.39"
-markdown = "1.0.0"
+jotdown = "0.8.0"
