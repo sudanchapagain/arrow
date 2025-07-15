@@ -1,12 +1,18 @@
-use clap::{Arg, Command};
+use clap::{Arg, ArgAction, Command};
 use std::process;
 
-mod cmd;
+mod commands;
+mod config;
+mod djot;
+mod fs;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let matches = Command::new("arrow")
         .version("6.0")
         .about("a simple static site generator")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
         .subcommand(
             Command::new("serve")
                 .about("start a local server and watch for changes")
@@ -16,7 +22,7 @@ fn main() {
                         .long("port")
                         .value_name("PORT")
                         .help("specify the port to serve on")
-                        .num_args(1),
+                        .action(ArgAction::Set),
                 )
                 .arg(
                     Arg::new("entry")
@@ -24,7 +30,8 @@ fn main() {
                         .short('e')
                         .value_name("ENTRY")
                         .help("specify the workspace key (e.g., site, notes)")
-                        .num_args(1),
+                        .required(true)
+                        .action(ArgAction::Set),
                 ),
         )
         .subcommand(
@@ -37,12 +44,13 @@ fn main() {
                         .short('e')
                         .value_name("ENTRY")
                         .help("specify the workspace key (e.g., site, notes)")
-                        .num_args(1),
+                        .required(true)
+                        .action(ArgAction::Set),
                 ),
         )
         .subcommand(
             Command::new("status")
-                .about("list status of all source markdown files")
+                .about("list status of all source djot files")
                 .alias("st")
                 .arg(
                     Arg::new("entry")
@@ -50,7 +58,8 @@ fn main() {
                         .short('e')
                         .value_name("ENTRY")
                         .help("specify the workspace key (e.g., site, notes)")
-                        .num_args(1),
+                        .required(true)
+                        .action(ArgAction::Set),
                 ),
         )
         .subcommand(
@@ -63,47 +72,39 @@ fn main() {
                         .short('e')
                         .value_name("ENTRY")
                         .help("specify the workspace key (e.g., site, notes)")
-                        .num_args(1),
+                        .required(true)
+                        .action(ArgAction::Set),
                 ),
         )
         .get_matches();
 
-    match matches.subcommand() {
+    let result = match matches.subcommand() {
         Some(("serve", sub_m)) => {
-            let port = match sub_m.get_one::<String>("port") {
-                Some(p_str) => match p_str.parse::<u16>() {
-                    Ok(p) => p,
-                    Err(_) => {
-                        eprintln!("Invalid port '{}'", p_str);
-                        process::exit(1);
-                    }
-                },
-                None => 4321,
-            };
+            let port = sub_m
+                .get_one::<String>("port")
+                .and_then(|s| s.parse::<u16>().ok())
+                .unwrap_or(0);
 
-            let entry = get_entry(sub_m);
-            cmd::serve(port, entry);
+            let entry = sub_m.get_one::<String>("entry").unwrap();
+            commands::serve_command(port, entry).await
         }
         Some(("new", sub_m)) => {
-            let entry = get_entry(sub_m);
-            cmd::new_entry(entry);
+            let entry = sub_m.get_one::<String>("entry").unwrap();
+            commands::new_command(entry)
         }
         Some(("status", sub_m)) => {
-            let entry = get_entry(sub_m);
-            cmd::status(entry);
+            let entry = sub_m.get_one::<String>("entry").unwrap();
+            commands::status_command(entry)
         }
         Some(("build", sub_m)) => {
-            let entry = get_entry(sub_m);
-            cmd::build(entry);
+            let entry = sub_m.get_one::<String>("entry").unwrap();
+            commands::build_command(entry).await
         }
-        _ => {
-            eprintln!("No subcommand provided.\n");
-            let _ = Command::new("arrow").print_help();
-            process::exit(1);
-        }
-    }
-}
+        _ => unreachable!(),
+    };
 
-fn get_entry(sub_m: &clap::ArgMatches) -> &str {
-    sub_m.get_one::<String>("entry").map_or("", String::as_str)
+    if let Err(e) = result {
+        eprintln!("Error: {e}");
+        process::exit(1);
+    }
 }
